@@ -1,44 +1,52 @@
-﻿# 🏥 MedVault: Appointment Booking & Medical Records Management System  
+﻿# 🏥 MedVault: Full-Stack Hospital Management System (Beginner)
 
-## 📘 Infosys Springboard Virtual Internship 6.0 Completion Report  
+## 📘 Problem Statement  
 
-**Batch Number:** 1  
-**Start Date:** 13 Aug 2025  
-**Duration:** 8 Weeks  
-**Name:** Polabathina Ramcharan Teja  
+Hospitals often struggle with managing patient data, staff coordination, and medical records efficiently due to fragmented or manual systems. This leads to delays in treatment, loss of information, and poor communication between departments.  
 
----
-
-## 1️⃣ Project Title  
-**MedVault: Appointment Booking & Medical Records Management System**
+There is a need for a **centralized digital platform** that ensures secure access to patient information, simplifies appointment scheduling, and improves coordination among doctors, receptionists, lab technicians, and administrative staff.  
 
 ---
 
-## 2️⃣ Project Objective  
+## 🎯 Objective  
 
-The primary objective of **MedVault** is to build a **secure, web-based Personal Electronic Health Record (EHR) system** that empowers patients to manage their medical information effectively.  
+The goal of **MedVault** is to develop a **secure and scalable web-based Hospital Management System** that digitizes and centralizes the hospital’s workflow — covering appointments, patient records, staff management, and communication.  
 
-It enables users to **store, access, and share** their health data with verified doctors and hospitals in a **safe and user-friendly environment**.  
-
-### Key goals  
-- Improve patient engagement through health tracking and reminders.  
-- Enable secure communication between patients and healthcare providers.  
-- Support doctors with quick access to verified patient records for better clinical decisions.  
+### Key Goals  
+- Centralize all hospital operations into one digital platform.  
+- Enable quick and secure access to patient health records.  
+- Streamline appointment booking and reduce waiting times.  
+- Enhance coordination between departments through role-based access.  
+- Ensure data security, privacy, and compliance with healthcare standards.  
 
 ---
 
-## 3️⃣ Project Description  
+## 🧩 Project Description  
 
-**MedVault** is a full-stack healthcare web application that allows patients to manage their medical records, book appointments (including emergencies), and interact with verified doctors. Admins oversee approvals and manage overall system activities.  
+**MedVault** is a full-stack hospital management web application designed to connect patients, doctors, and hospital staff under a single, unified system.  
 
-### 🔹 Approach  
-- **Feature Planning:** Weekly breakdown of deliverables.  
-- **Backend Development:** Spring Boot REST APIs with JWT-based role access.  
-- **Database Design:** MySQL schema optimized for multiple roles.  
-- **Frontend Integration:** React.js for dynamic and secure UI rendering.  
-- **Testing & QA:** Postman for API testing and SonarQube for code quality.  
+### 🔹 Core Features  
+- **Role-Based Access:** Different dashboards for Admin, Doctor, Patient, Receptionist, and Lab Staff.  
+- **Appointment Scheduling:** Patients can book appointments with doctors based on specialty and availability.  
+- **Medical Records Management:** Secure upload, storage, and sharing of medical history and lab results.  
+- **Doctor & Staff Management:** Admins can add, verify, and manage doctors, nurses, and technicians.  
+- **Emergency Appointments:** Rapid booking system to match patients with available doctors.  
+- **Notifications & Communication:** Automated email/SMS alerts for bookings and updates.  
+- **Data Privacy:** Role-based permissions and JWT-based security ensure safe access to medical data.  
 
-### 🔹 Tech Stack  
+---
+
+## ⚙️ Technical Approach  
+
+### 🔸 Architecture  
+- **Frontend:** Built with React.js for dynamic and modular UI.  
+- **Backend:** Developed using Spring Boot with RESTful APIs and layered architecture.  
+- **Database:** MySQL schema designed for relational consistency and data integrity.  
+- **Security:** Implemented JWT-based authentication and role authorization.  
+- **API Testing:** Endpoints validated using Postman.  
+- **Code Quality:** Maintained through SonarQube static analysis.  
+
+### 🔸 Tech Stack  
 | Layer | Technology |
 |-------|-------------|
 | Frontend | React.js |
@@ -46,116 +54,59 @@ It enables users to **store, access, and share** their health data with verified
 | Database | MySQL |
 | Tools | Postman, Git, SonarQube |
 
-### 🔹 Real-World Impact  
-- Simplifies appointment scheduling and record management.  
-- Strengthens patient–doctor communication.  
-- Ensures secure, privacy-compliant handling of health data.  
+---
+
+## 🚀 Current Development Modules  
+
+| Module | Description | Status |
+|---------|--------------|--------|
+| Authentication | JWT-based login and registration for all roles | ✅ Completed |
+| Role Management | Access control for Admin, Doctor, Patient | ✅ Completed |
+| Appointment Module | Doctor slot creation and patient booking | ⚙️ In Progress |
+| Medical Records | Upload and secure viewing of health records | ⚙️ In Progress |
+| Emergency Booking | Quick doctor-matching system | ⏳ Planned |
+| Notifications | Email/SMS updates for bookings | ⏳ Planned |
+| Dashboard UI | React-based multi-role dashboards | ⚙️ In Progress |
 
 ---
 
-## 4️⃣ Timeline Overview  
+## 💡 Key Features (Planned Enhancements)
 
-| Week | Planned Activities | Completed Activities |
-|------|--------------------|----------------------|
-| 1 | Environment setup, DB design | Backend initialized, schema designed |
-| 2 | Auth & role-based access | JWT-based login/registration implemented |
-| 3 | Profile verification & dashboards | Admin verification, dashboards done |
-| 4 | Appointment module | Slot creation, booking, and email alerts |
-| 5 | Medical records module | Uploads, access control, and viewing system |
-| 6 | Emergency booking & QA | Emergency booking + SonarQube checks |
-| 7 | Testing & Integration | Full testing and UI polishing |
-| 8 | Final report & presentation | Completed documentation and presentation |
+- Real-time chat between doctor and patient.  
+- Lab test tracking and digital reports.  
+- Payment and billing integration.  
+- Analytics dashboard for hospital insights.  
+- Multi-hospital support with branch management.  
 
 ---
 
-## 5️⃣ Key Milestones  
+## 🧠 Learnings and Insights  
 
-| Milestone | Description | Date |
-|------------|--------------|------|
-| Project Kickoff | Orientation, setup, and team intro | 13 Aug 2025 |
-| Prototype | Auth, roles, admin dashboard | 26 Aug 2025 |
-| Mid-Term Review | Booking system and verification module | 9 Sep 2025 |
-| Final Submission | Integration, testing, and docs | 3 Oct 2025 |
-| Presentation | Final demo and feedback | 5 Oct 2025 |
-
----
-
-## 6️⃣ Project Execution Details  
-
-MedVault followed an **incremental development model**, ensuring weekly delivery and continuous integration.  
-
-### Modules Implemented  
-- **User Authentication:** JWT-based login with Admin/Doctor/Patient roles.  
-- **Profile Verification:** Admin verifies documents before granting access.  
-- **Appointment Booking:** Doctors create slots; patients book and receive email notifications.  
-- **Medical Records:** Patients upload documents; doctors access them only temporarily.  
-- **Emergency Bookings:** Auto doctor-matching for emergencies.  
-- **Frontend Integration:** Role-specific React components consuming REST APIs.  
-- **Testing & QA:** Postman for endpoints, SonarQube for maintainable code.  
-
-The system is **secure, modular, and real-world ready**, simulating real healthcare workflows.  
+Developing **MedVault** provides experience in:  
+- Full-stack web development (Spring Boot + React).  
+- Designing secure, scalable healthcare systems.  
+- Implementing modular architectures and microservices.  
+- Handling sensitive data with proper encryption and access control.  
+- Improving UX for multi-role systems (patients, doctors, staff).  
 
 ---
 
-## 7️⃣ Challenges Faced  
+## 🔒 Security Highlights  
 
-- **⏰ Time Management:** Balanced college, travel, and internship schedules through disciplined planning.  
-- **⚙️ SonarQube Compatibility:** Resolved Java 21 incompatibility by switching to Java 17.  
-- **🗄️ Schema Updates:** Anticipated DB changes ahead of time to avoid frequent sync issues.  
-
----
-
-## 8️⃣ Learnings & Skills Acquired  
-
-### 🧠 Technical Skills  
-- **Java & Spring Boot:** REST APIs, authentication, modular service-layer design.  
-- **MySQL:** Schema design, entity relationships, optimization.  
-- **React.js:** Dynamic UI rendering, API integration, role-based UI flow.  
-- **Postman:** Endpoint testing and validation.  
-- **SonarQube:** Code analysis and maintainability.  
-
-### 💼 Professional Skills  
-- Incremental development and Git version control.  
-- Security best practices and privacy enforcement.  
-- Time management and problem-solving under tight deadlines.  
+- JWT-based authentication and authorization.  
+- Role-based access control for all users.  
+- Encrypted data storage for medical records.  
+- API-level validation for all input data.  
 
 ---
 
-## 9️⃣ Testimonials  
+## 📈 Impact  
 
-> “Working on **MedVault** was one of the most rewarding experiences. It challenged me to think beyond just code — to design, plan, and execute a system that could make a real impact in healthcare. Despite time constraints, I stayed consistent and delivered every milestone. Implementing secure APIs, emergency flows, and access-controlled records strengthened both my technical depth and confidence.”  
->  
-> — *Polabathina Ramcharan Teja*  
-
----
-
-## 🔟 Conclusion  
-
-The Infosys Springboard Virtual Internship bridged the gap between **academic knowledge and real-world development**.  
-
-Through MedVault, I gained hands-on experience in:  
-- Full-stack development (React + Spring Boot)  
-- Secure data management  
-- System architecture and incremental delivery  
-
-It also served as perfect preparation for my upcoming academic projects, reinforcing my goal to pursue impactful software solutions in healthcare and beyond.  
+If implemented in real hospital settings, **MedVault** would:  
+- Reduce administrative burden and manual record-keeping.  
+- Improve coordination between hospital departments.  
+- Enhance patient satisfaction through faster services.  
+- Provide reliable data access for better clinical decisions.  
 
 ---
 
-## 1️⃣1️⃣ Acknowledgements  
-
-I extend my gratitude to **Infosys Springboard** for this invaluable opportunity.  
-
-Special thanks to:  
-- **Aditya Sir** — for expert mentorship, guidance, and feedback.  
-- **Praveen Sir** — for managing coordination, updates, and ensuring smooth progress.  
-
-This internship was an enriching journey that strengthened my skills, confidence, and professional discipline.  
-
----
-
-## 🖼️ Snapshots / Screenshots  
-
-Add screenshots here (example placeholders):  
-
----
