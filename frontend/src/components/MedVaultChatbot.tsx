@@ -28,7 +28,7 @@ interface ChatbotProps {
   className?: string;
 }
 
-const GEMINI_API_KEY = 'AIzaSyDPIV9_O8XLWhcYqBB5M_N0J1xI2rQ3f50';
+const GEMINI_API_KEY = 'AIzaSyDOauzj-XfYfzHDcIuFd_fy55S2WuiIJbQ';
 
 const MedVaultChatbot: React.FC<ChatbotProps> = ({ className = '' }) => {
   const [isOpen, setIsOpen] = useState(false);
