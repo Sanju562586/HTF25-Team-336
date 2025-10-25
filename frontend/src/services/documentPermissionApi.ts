@@ -5,6 +5,7 @@ import {
   PatientMedicalRecordAccess,
   DoctorDocumentAccess,
 } from "@/types/documentPermission";
+// import { CurrentHealthData } from "@/types/healthRecord";
 import { CurrentHealthData } from "@/types/healthRecord";
 
 const api = axios.create({

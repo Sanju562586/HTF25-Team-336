@@ -1,5 +1,5 @@
 import api from './api';
-import { EmergencyRequest, CreateEmergencyRequest, DoctorAvailability, EmergencyStats } from 'src/types/emergency';
+import { EmergencyRequest, CreateEmergencyRequest, DoctorAvailability, EmergencyStats } from '@/types/emergency';
 
 export const emergencyAPI = {
   // Patient Emergency Requests
