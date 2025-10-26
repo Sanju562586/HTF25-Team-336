@@ -33,6 +33,17 @@ public class EmergencyService {
 
     private static final Logger log = LoggerFactory.getLogger(EmergencyService.class);
 
+    private double calculateDistance(double lat1, double lon1, double lat2, double lon2) {
+        final int R = 6371; // Radius of Earth in km
+        double latDistance = Math.toRadians(lat2 - lat1);
+        double lonDistance = Math.toRadians(lon2 - lon1);
+        double a = Math.sin(latDistance / 2) * Math.sin(latDistance / 2)
+                + Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2))
+                * Math.sin(lonDistance / 2) * Math.sin(lonDistance / 2);
+        double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        return R * c; // Distance in km
+    }
+
     public boolean getDoctorAvailability(String doctorId) {
         Optional<DoctorAvailability> availability = doctorAvailabilityRepository.findByDoctorId(Long.parseLong(doctorId));
         return availability.map(DoctorAvailability::getIsAvailable).orElse(false);
@@ -67,19 +78,36 @@ public class EmergencyService {
         log.info("Creating emergency request for patientId: {}, symptoms: {}",
                 requestDTO.getPatientId(), requestDTO.getSymptoms());
 
+        // Fetch patient first
+        Patient patient = patientRepository.findById(Long.parseLong(requestDTO.getPatientId()))
+                .orElseThrow(() -> new RuntimeException("Patient not found"));
+        log.info("Patient location: latitude={}, longitude={}", patient.getLatitude(), patient.getLongitude());
+
         // 1. Predict specialization using FastAPI service
         String predictedSpecialization = predictSpecialization(requestDTO.getSymptoms());
         log.info("Predicted specialization: {}", predictedSpecialization);
 
-        // 2. Find available doctors for the predicted specialization
-        List<DoctorAvailabilityDTO> availableDoctors = getAvailableDoctorsBySpecialization(predictedSpecialization);
+        // 2. Find available doctors for the predicted specialization sorted by distance
+        List<DoctorAvailabilityDTO> availableDoctors = getAvailableDoctorsBySpecialization(predictedSpecialization, patient);
         log.info("Found {} available doctors for specialization: {}", availableDoctors.size(), predictedSpecialization);
+        for (DoctorAvailabilityDTO d : availableDoctors) {
+            double[] loc = parseLocation(d.getCurrentLocation());
+            double dist = calculateDistance(patient.getLatitude(), patient.getLongitude(), loc[0], loc[1]);
+            log.info("Doctor: {} (ID: {}) at {}, distance: {} km",
+                    d.getDoctorName(), d.getDoctorId(), d.getCurrentLocation(), dist);
+        }
 
         // 3. Fallback to General doctor if none found
         if (availableDoctors.isEmpty()) {
             log.warn("No doctors found for {}. Falling back to General doctors.", predictedSpecialization);
-            availableDoctors = getAvailableDoctorsBySpecialization("General");
+            availableDoctors = getAvailableDoctorsBySpecialization("General", patient);
             log.info("Found {} available General doctors", availableDoctors.size());
+            for (DoctorAvailabilityDTO d : availableDoctors) {
+                double[] loc = parseLocation(d.getCurrentLocation());
+                double dist = calculateDistance(patient.getLatitude(), patient.getLongitude(), loc[0], loc[1]);
+                log.info("Doctor: {} (ID: {}) at {}, distance: {} km",
+                        d.getDoctorName(), d.getDoctorId(), d.getCurrentLocation(), dist);
+            }
         }
 
         // 4. Create emergency request
@@ -99,11 +127,40 @@ public class EmergencyService {
         return emergencyRequest;
     }
 
-    // Helper: filter available doctors by specialization
-    public List<DoctorAvailabilityDTO> getAvailableDoctorsBySpecialization(String specialization) {
-        return getAvailableDoctors().stream()
+    // Helper: filter available doctors by specialization and sort by distance
+    public List<DoctorAvailabilityDTO> getAvailableDoctorsBySpecialization(String specialization, Patient patient) {
+        List<DoctorAvailabilityDTO> filteredDoctors = getAvailableDoctors().stream()
                 .filter(d -> d.getSpecialization().equalsIgnoreCase(specialization) && d.getIsAvailable())
+                .sorted((d1, d2) -> {
+                    double[] loc1 = parseLocation(d1.getCurrentLocation());
+                    double[] loc2 = parseLocation(d2.getCurrentLocation());
+
+                    double dist1 = calculateDistance(patient.getLatitude(), patient.getLongitude(), loc1[0], loc1[1]);
+                    double dist2 = calculateDistance(patient.getLatitude(), patient.getLongitude(), loc2[0], loc2[1]);
+
+                    log.debug("Comparing doctors {} vs {}: distances {} vs {}",
+                            d1.getDoctorName(), d2.getDoctorName(), dist1, dist2);
+
+                    return Double.compare(dist1, dist2);
+                })
                 .toList();
+
+        log.info("Sorted doctors for specialization {} by distance:", specialization);
+        for (DoctorAvailabilityDTO d : filteredDoctors) {
+            double[] loc = parseLocation(d.getCurrentLocation());
+            double dist = calculateDistance(patient.getLatitude(), patient.getLongitude(), loc[0], loc[1]);
+            log.info("Doctor: {} (ID: {}) at {}, distance: {} km", d.getDoctorName(), d.getDoctorId(), d.getCurrentLocation(), dist);
+        }
+
+        return filteredDoctors;
+    }
+
+    private double[] parseLocation(String currentLocation) {
+        // Expects format "lat,lng"
+        String[] parts = currentLocation.split(",");
+        double lat = Double.parseDouble(parts[0]);
+        double lng = Double.parseDouble(parts[1]);
+        return new double[]{lat, lng};
     }
 
     // Helper: predict specialization using your FastAPI service
@@ -263,13 +320,25 @@ public class EmergencyService {
         return dto;
     }
 
-    private DoctorAvailabilityDTO convertToAvailabilityDTO(DoctorAvailability availability) {
-        DoctorAvailabilityDTO dto = new DoctorAvailabilityDTO();
-        dto.setDoctorId(availability.getDoctor().getId());
-        dto.setDoctorName(availability.getDoctor().getFirstName() + " " + availability.getDoctor().getLastName());
-        dto.setSpecialization(availability.getDoctor().getSpecialization());
-        dto.setIsAvailable(availability.getIsAvailable());
-        dto.setCurrentLocation(availability.getCurrentLocation());
-        return dto;
-    }
+//    private DoctorAvailabilityDTO convertToAvailabilityDTO(DoctorAvailability availability) {
+//        DoctorAvailabilityDTO dto = new DoctorAvailabilityDTO();
+//        dto.setDoctorId(availability.getDoctor().getId());
+//        dto.setDoctorName(availability.getDoctor().getFirstName() + " " + availability.getDoctor().getLastName());
+//        dto.setSpecialization(availability.getDoctor().getSpecialization());
+//        dto.setIsAvailable(availability.getIsAvailable());
+//        dto.setCurrentLocation(availability.getCurrentLocation());
+//        return dto;
+//    }
+private DoctorAvailabilityDTO convertToAvailabilityDTO(DoctorAvailability availability) {
+    DoctorAvailabilityDTO dto = new DoctorAvailabilityDTO();
+    dto.setDoctorId(availability.getDoctor().getId());
+    dto.setDoctorName(availability.getDoctor().getFirstName() + " " + availability.getDoctor().getLastName());
+    dto.setSpecialization(availability.getDoctor().getSpecialization());
+    dto.setIsAvailable(availability.getIsAvailable());
+
+    // Assuming Doctor entity has getLatitude() and getLongitude()
+    dto.setCurrentLocation(availability.getDoctor().getLatitude() + "," + availability.getDoctor().getLongitude());
+    return dto;
+}
+
 }

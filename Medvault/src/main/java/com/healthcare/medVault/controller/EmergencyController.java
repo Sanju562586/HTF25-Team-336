@@ -50,7 +50,8 @@ public class EmergencyController {
     @GetMapping("/doctor/{doctorId}/availability")
     public ResponseEntity<?> getDoctorAvailability(@PathVariable String doctorId) {
         try {
-            boolean isAvailable = emergencyService.getDoctorAvailability(doctorId);
+            boolean isAvailable = emergencyService.
+                    getDoctorAvailability(doctorId);
             return ResponseEntity.ok().body(new AvailabilityResponse(isAvailable));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body("Error fetching doctor availability: " + e.getMessage());
