@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -23,6 +23,8 @@ import { EnhancedButton } from "@/components/ui/enhanced-button";
 interface PatientProfileFormProps {
   initialData?: PatientProfile;
   onSuccess?: (profile: PatientProfile) => void;
+  locationFromMap?: { lat: number; lng: number } | null; // NEW
+  hideLocationFields?: boolean;                            // NEW
 }
 
 const formatDate = (date: Date) => {
@@ -49,7 +51,8 @@ const patientProfileSchema = z.object({
 
 type PatientProfileForm = z.infer<typeof patientProfileSchema>;
 
-export default function PatientProfileForm({ initialData, onSuccess }: PatientProfileFormProps = {}) {
+export default function PatientProfileForm({ initialData, onSuccess, locationFromMap = null,
+  hideLocationFields = true }: PatientProfileFormProps = {}) {
   const { user } = useAuth();
   const { patientProfile, refetchProfile } = useProfile();
   const { toast } = useToast();
@@ -143,6 +146,12 @@ export default function PatientProfileForm({ initialData, onSuccess }: PatientPr
     }
   };
 
+  useEffect(() => {
+    if (locationFromMap) {
+      form.setValue("latitude", locationFromMap.lat, { shouldValidate: true, shouldDirty: true });
+      form.setValue("longitude", locationFromMap.lng, { shouldValidate: true, shouldDirty: true });
+    }
+  }, [locationFromMap, form]); // NEW
   return (
     <div className="container mx-auto py-8 max-w-4xl">
       <Card>
@@ -357,44 +366,38 @@ export default function PatientProfileForm({ initialData, onSuccess }: PatientPr
                       </FormItem>
                     )}
                   />
-                  <FormField
-                    control={form.control}
-                    name="latitude"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Latitude (optional)</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            step="any"
-                            placeholder="e.g. 12.971599"
-                            value={field.value ?? ''}
-                            onChange={(e) => field.onChange(e.target.value === '' ? undefined : parseFloat(e.target.value))}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="longitude"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Longitude (optional)</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            step="any"
-                            placeholder="e.g. 77.594566"
-                            value={field.value ?? ''}
-                            onChange={(e) => field.onChange(e.target.value === '' ? undefined : parseFloat(e.target.value))}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                  {/* Replace your latitude/longitude FormFields block */}
+                  {!hideLocationFields ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <FormField
+                        control={form.control}
+                        name="latitude"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Latitude</FormLabel>
+                            <FormControl>
+                              <Input type="number" step="any" value={field.value ?? ''} disabled readOnly />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="longitude"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Longitude</FormLabel>
+                            <FormControl>
+                              <Input type="number" step="any" value={field.value ?? ''} disabled readOnly />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  ) : null}
+
                   <div className="space-y-2">
                     <label className="text-sm font-medium">Government ID Upload</label>
                     <div className="flex items-center space-x-2">

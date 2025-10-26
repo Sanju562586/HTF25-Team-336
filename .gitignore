@@ -1,1 +1,7 @@
 /Medvault/src/main/resources/application.properties
+Medvault/target/
+node_modules/
+__pycache__/
+*.pyc
+*.pkl
+.vscode/
