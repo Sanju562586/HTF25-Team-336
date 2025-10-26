@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { DoctorProfile } from '@/types/user';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -12,6 +12,8 @@ import {
   Download, Eye, Stethoscope, DollarSign,
   IndianRupee
 } from 'lucide-react';
+import maplibregl from 'maplibre-gl';
+import 'maplibre-gl/dist/maplibre-gl.css';
 
 interface DoctorProfileDisplayProps {
   profile: DoctorProfile | null;
@@ -28,18 +30,81 @@ export const DoctorProfileDisplay: React.FC<DoctorProfileDisplayProps> = ({
   isEditing = false,
   onEditToggle
 }) => {
-     const [loadingDocument, setLoadingDocument] = useState(false);
+  const [loadingDocument, setLoadingDocument] = useState(false);
   const { toast } = useToast();
 
-  // Check if profile is complete (since DoctorProfile might not have isProfileComplete property)
-  const isProfileComplete = profile && 
-    profile.firstName && 
-    profile.lastName && 
+  const [editPosition, setEditPosition] = useState<{ lat: number; lng: number } | null>(null);
+  const mapContainerRef = useRef<HTMLDivElement | null>(null);
+  const mapRef = useRef<maplibregl.Map | null>(null);
+  const markerRef = useRef<maplibregl.Marker | null>(null);
+
+  // Map initialization for EDIT mode
+useEffect(() => {
+  if (!isEditing) {
+    if (mapRef.current) {
+      mapRef.current.remove();
+      mapRef.current = null;
+    }
+    markerRef.current = null;
+    return;
+  }
+
+  const initial = (profile?.latitude != null && profile?.longitude != null)
+    ? { lat: Number(profile.latitude), lng: Number(profile.longitude) } // <-- ensure number
+    : null;
+  setEditPosition(initial);
+
+  if (!mapContainerRef.current || mapRef.current) return;
+
+  const map = new maplibregl.Map({
+    container: mapContainerRef.current,
+    style: 'https://demotiles.maplibre.org/style.json',
+    center: [initial?.lng ?? 78, initial?.lat ?? 20],
+    zoom: initial ? 12 : 5
+  });
+  mapRef.current = map;
+
+  if (initial) {
+    markerRef.current = new maplibregl.Marker({ draggable: true })
+      .setLngLat([initial.lng, initial.lat])
+      .addTo(map)
+      .on('dragend', () => {
+        const p = markerRef.current!.getLngLat();
+        setEditPosition({ lat: p.lat, lng: p.lng });
+      });
+  }
+
+  // Map click to update marker
+  map.on('click', (e) => {
+    if (!markerRef.current) {
+      markerRef.current = new maplibregl.Marker({ draggable: true })
+        .setLngLat(e.lngLat)
+        .addTo(map)
+        .on('dragend', () => {
+          const p = markerRef.current!.getLngLat();
+          setEditPosition({ lat: p.lat, lng: p.lng });
+        });
+    } else {
+      markerRef.current.setLngLat(e.lngLat);
+    }
+    setEditPosition({ lat: e.lngLat.lat, lng: e.lngLat.lng });
+  });
+
+  return () => {
+    if (mapRef.current) mapRef.current.remove();
+    markerRef.current = null;
+  };
+}, [isEditing, profile?.latitude, profile?.longitude]);
+
+  // Profile completeness check
+  const isProfileComplete = profile &&
+    profile.firstName &&
+    profile.lastName &&
     profile.gender &&
     profile.dateOfBirth &&
     profile.contactNumber &&
     profile.address &&
-    profile.specialization && 
+    profile.specialization &&
     profile.specialization.length > 0 &&
     profile.department &&
     profile.yearsOfExperience !== undefined &&
@@ -47,7 +112,7 @@ export const DoctorProfileDisplay: React.FC<DoctorProfileDisplayProps> = ({
     profile.governmentIdNumber &&
     profile.medicalDegreeUrl;
 
-  // Add document handling functions
+  // Document handling
   const handleViewDocument = async (filename: string) => {
     try {
       setLoadingDocument(true);
@@ -73,18 +138,12 @@ export const DoctorProfileDisplay: React.FC<DoctorProfileDisplayProps> = ({
       const url = window.URL.createObjectURL(documentBlob);
       const link = document.createElement('a');
       link.href = url;
-      
-      // Extract filename from the path
       const cleanFilename = filename.replace('/uploads/', '');
       link.download = cleanFilename;
-      
       document.body.appendChild(link);
       link.click();
-      
-      // Clean up
       window.URL.revokeObjectURL(url);
       document.body.removeChild(link);
-      
     } catch (error) {
       console.error('Failed to download document:', error);
       toast({
@@ -106,7 +165,6 @@ export const DoctorProfileDisplay: React.FC<DoctorProfileDisplayProps> = ({
     );
   }
 
-  // Show form if editing OR if no profile exists OR if profile exists but is incomplete
   if (isEditing || !profile || !isProfileComplete) {
     return (
       <div className="space-y-6">
@@ -125,7 +183,7 @@ export const DoctorProfileDisplay: React.FC<DoctorProfileDisplayProps> = ({
             </CardContent>
           </Card>
         )}
-        
+
         {isEditing && (
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-semibold">Edit Profile</h3>
@@ -137,12 +195,36 @@ export const DoctorProfileDisplay: React.FC<DoctorProfileDisplayProps> = ({
             </EnhancedButton>
           </div>
         )}
-        
-        <DoctorProfileForm />
+
+        {/* Map Picker */}
+        <Card className="shadow-card border-border/50 bg-card/80 backdrop-blur-sm">
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2">
+              <MapPin className="w-5 h-5 text-primary" />
+              <span>Pick Location</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              <div ref={mapContainerRef} className="w-full h-64 rounded-lg border border-border/30" />
+              <p className="text-sm text-muted-foreground">
+                {editPosition
+                  ? `Selected: ${editPosition.lat.toFixed(6)} / ${editPosition.lng.toFixed(6)}`
+                  : 'Click on the map to set your location, then drag the marker to fine-tune.'}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <DoctorProfileForm
+          hideLocationFields
+          locationFromMap={editPosition} 
+        />
       </div>
     );
   }
-const getVerificationBadge = () => {
+
+  const getVerificationBadge = () => {
     if (profile.status === 'APPROVED') {
       return (
         <Badge variant="outline" className="bg-success/10 text-success border-success/20">
@@ -169,7 +251,7 @@ const getVerificationBadge = () => {
 
   return (
     <div className="space-y-6">
-      {/* Profile Header */}
+      {/* Profile Card */}
       <Card className="shadow-card border-border/50 bg-card/80 backdrop-blur-sm">
         <CardHeader>
           <div className="flex items-center justify-between">
@@ -191,14 +273,14 @@ const getVerificationBadge = () => {
           </div>
         </CardHeader>
         <CardContent>
+          {/* Personal & Professional Information */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Personal Information */}
+            {/* Personal */}
             <div className="space-y-4">
               <h4 className="font-semibold text-foreground flex items-center space-x-2">
                 <User className="w-4 h-4" />
                 <span>Personal Information</span>
               </h4>
-              
               <div className="space-y-3">
                 <div>
                   <label className="text-sm text-muted-foreground">Full Name</label>
@@ -206,12 +288,10 @@ const getVerificationBadge = () => {
                     Dr. {profile.firstName} {profile.lastName}
                   </p>
                 </div>
-                
                 <div>
                   <label className="text-sm text-muted-foreground">Gender</label>
                   <p className="text-foreground">{profile.gender}</p>
                 </div>
-                
                 <div>
                   <label className="text-sm text-muted-foreground">Date of Birth</label>
                   <p className="text-foreground flex items-center space-x-2">
@@ -219,47 +299,40 @@ const getVerificationBadge = () => {
                     <span>{new Date(profile.dateOfBirth).toLocaleDateString()}</span>
                   </p>
                 </div>
-                
                 <div>
                   <label className="text-sm text-muted-foreground">Government ID</label>
                   <p className="text-foreground">{profile.governmentIdNumber}</p>
                 </div>
-
                 <div>
                   <label className="text-sm text-muted-foreground">Medical License</label>
                   <p className="text-foreground">{profile.licenseNumber}</p>
                 </div>
               </div>
             </div>
-            
-            {/* Professional Information */}
+
+            {/* Professional */}
             <div className="space-y-4">
               <h4 className="font-semibold text-foreground flex items-center space-x-2">
                 <Stethoscope className="w-4 h-4" />
                 <span>Professional Information</span>
               </h4>
-              
               <div className="space-y-3">
                 <div>
                   <label className="text-sm text-muted-foreground">Specialization</label>
                   <p className="text-foreground">{Array.isArray(profile.specialization) ? profile.specialization.join(', ') : profile.specialization}</p>
                 </div>
-                
                 <div>
                   <label className="text-sm text-muted-foreground">Department</label>
                   <p className="text-foreground">{profile.department}</p>
                 </div>
-                
                 <div>
                   <label className="text-sm text-muted-foreground">Years of Experience</label>
                   <p className="text-foreground">{profile.yearsOfExperience} years</p>
                 </div>
-
                 <div>
                   <label className="text-sm text-muted-foreground">Languages Spoken</label>
                   <p className="text-foreground">{Array.isArray(profile.languagesSpoken) ? profile.languagesSpoken.join(', ') : profile.languagesSpoken}</p>
                 </div>
-
                 {profile.consultationFees && (
                   <div>
                     <label className="text-sm text-muted-foreground">Consultation Fees</label>
@@ -272,13 +345,13 @@ const getVerificationBadge = () => {
               </div>
             </div>
           </div>
-          {/* Contact Information */}
+
+          {/* Contact */}
           <div className="mt-6 pt-6 border-t border-border/50">
             <h4 className="font-semibold text-foreground flex items-center space-x-2 mb-4">
               <Phone className="w-4 h-4" />
               <span>Contact Information</span>
             </h4>
-            
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="text-sm text-muted-foreground">Phone Number</label>
@@ -287,7 +360,6 @@ const getVerificationBadge = () => {
                   <span>{profile.contactNumber}</span>
                 </p>
               </div>
-              
               <div>
                 <label className="text-sm text-muted-foreground">Address</label>
                 <p className="text-foreground flex items-center space-x-2">
@@ -303,134 +375,69 @@ const getVerificationBadge = () => {
               )}
             </div>
           </div>
-          
+
           {/* Documents */}
           <div className="mt-6 pt-6 border-t border-border/50">
             <h4 className="font-semibold text-foreground flex items-center space-x-2 mb-4">
               <FileText className="w-4 h-4" />
               <span>Documents</span>
             </h4>
-            
             <div className="space-y-4">
-              {profile.medicalDegreeUrl && (
-                <div className="flex items-center space-x-4 p-4 rounded-lg bg-accent/30 border border-border/30">
-                  <div className="p-2 rounded-full bg-primary/20">
-                    <FileText className="w-4 h-4 text-primary" />
+              {['medicalDegreeUrl', 'governmentIdUrl', 'affiliationProofUrl'].map((docKey) => {
+                const docNameMap: Record<string, string> = {
+                  medicalDegreeUrl: 'Medical Degree',
+                  governmentIdUrl: 'Government ID',
+                  affiliationProofUrl: 'Affiliation Proof',
+                };
+                const docDescMap: Record<string, string> = {
+                  medicalDegreeUrl: 'Medical qualification document',
+                  governmentIdUrl: 'Identity verification document',
+                  affiliationProofUrl: 'Hospital/clinic affiliation document',
+                };
+                const url = (profile as any)[docKey];
+                if (!url) return null;
+                return (
+                  <div key={docKey} className="flex items-center space-x-4 p-4 rounded-lg bg-accent/30 border border-border/30">
+                    <div className="p-2 rounded-full bg-primary/20">
+                      <FileText className="w-4 h-4 text-primary" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-medium text-foreground">{docNameMap[docKey]}</p>
+                      <p className="text-sm text-muted-foreground">{docDescMap[docKey]}</p>
+                    </div>
+                    <div className="flex space-x-2">
+                      <EnhancedButton 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => handleViewDocument(url)}
+                        disabled={loadingDocument}
+                      >
+                        {loadingDocument ? (
+                          <div className="animate-spin w-4 h-4 border-2 border-current border-t-transparent rounded-full mr-2" />
+                        ) : (
+                          <Eye className="w-4 h-4 mr-2" />
+                        )}
+                        View Document
+                      </EnhancedButton>
+                      <EnhancedButton 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={() => handleDownloadDocument(url)}
+                        disabled={loadingDocument}
+                      >
+                        {loadingDocument ? (
+                          <div className="animate-spin w-4 h-4 border-2 border-current border-t-transparent rounded-full" />
+                        ) : (
+                          <Download className="w-4 h-4" />
+                        )}
+                      </EnhancedButton>
+                    </div>
                   </div>
-                  <div className="flex-1">
-                    <p className="font-medium text-foreground">Medical Degree</p>
-                    <p className="text-sm text-muted-foreground">Medical qualification document</p>
-                  </div>
-                  <div className="flex space-x-2">
-                    <EnhancedButton 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => handleViewDocument(profile.medicalDegreeUrl)}
-                      disabled={loadingDocument}
-                    >
-                      {loadingDocument ? (
-                        <div className="animate-spin w-4 h-4 border-2 border-current border-t-transparent rounded-full mr-2" />
-                      ) : (
-                        <Eye className="w-4 h-4 mr-2" />
-                      )}
-                      View Document
-                    </EnhancedButton>
-                    <EnhancedButton 
-                      variant="ghost" 
-                      size="sm"
-                      onClick={() => handleDownloadDocument(profile.medicalDegreeUrl)}
-                      disabled={loadingDocument}
-                    >
-                      {loadingDocument ? (
-                        <div className="animate-spin w-4 h-4 border-2 border-current border-t-transparent rounded-full" />
-                      ) : (
-                        <Download className="w-4 h-4" />
-                      )}
-                    </EnhancedButton>
-                  </div>
-                </div>
-              )}
-
-              {profile.governmentIdUrl && (
-                <div className="flex items-center space-x-4 p-4 rounded-lg bg-accent/30 border border-border/30">
-                  <div className="p-2 rounded-full bg-primary/20">
-                    <FileText className="w-4 h-4 text-primary" />
-                  </div>
-                  <div className="flex-1">
-                    <p className="font-medium text-foreground">Government ID</p>
-                    <p className="text-sm text-muted-foreground">Identity verification document</p>
-                  </div>
-                  <div className="flex space-x-2">
-                    <EnhancedButton 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => handleViewDocument(profile.governmentIdUrl)}
-                      disabled={loadingDocument}
-                    >
-                      {loadingDocument ? (
-                        <div className="animate-spin w-4 h-4 border-2 border-current border-t-transparent rounded-full mr-2" />
-                      ) : (
-                        <Eye className="w-4 h-4 mr-2" />
-                      )}
-                      View Document
-                    </EnhancedButton>
-                    <EnhancedButton 
-                      variant="ghost" 
-                      size="sm"
-                      onClick={() => handleDownloadDocument(profile.governmentIdUrl)}
-                      disabled={loadingDocument}
-                    >
-                      {loadingDocument ? (
-                        <div className="animate-spin w-4 h-4 border-2 border-current border-t-transparent rounded-full" />
-                      ) : (
-                        <Download className="w-4 h-4" />
-                      )}
-                    </EnhancedButton>
-                  </div>
-                </div>
-              )}
-
-              {profile.affiliationProofUrl && (
-                <div className="flex items-center space-x-4 p-4 rounded-lg bg-accent/30 border border-border/30">
-                  <div className="p-2 rounded-full bg-primary/20">
-                    <FileText className="w-4 h-4 text-primary" />
-                  </div>
-                  <div className="flex-1">
-                    <p className="font-medium text-foreground">Affiliation Proof</p>
-                    <p className="text-sm text-muted-foreground">Hospital/clinic affiliation document</p>
-                  </div>
-                  <div className="flex space-x-2">
-                    <EnhancedButton 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => handleViewDocument(profile.affiliationProofUrl)}
-                      disabled={loadingDocument}
-                    >
-                      {loadingDocument ? (
-                        <div className="animate-spin w-4 h-4 border-2 border-current border-t-transparent rounded-full mr-2" />
-                      ) : (
-                        <Eye className="w-4 h-4 mr-2" />
-                      )}
-                      View Document
-                    </EnhancedButton>
-                    <EnhancedButton 
-                      variant="ghost" 
-                      size="sm"
-                      onClick={() => handleDownloadDocument(profile.affiliationProofUrl)}
-                      disabled={loadingDocument}
-                    >
-                      {loadingDocument ? (
-                        <div className="animate-spin w-4 h-4 border-2 border-current border-t-transparent rounded-full" />
-                      ) : (
-                        <Download className="w-4 h-4" />
-                      )}
-                    </EnhancedButton>
-                  </div>
-                </div>
-              )}
+                );
+              })}
             </div>
           </div>
-          
+
           {/* Verification Status */}
           {profile && (profile.status === 'PENDING' || profile.status === 'REJECTED') && (
             <div className="mt-6 pt-6 border-t border-border/50">
@@ -445,7 +452,6 @@ const getVerificationBadge = () => {
                       </p>
                     </>
                   )}
-                  
                   {profile.status === 'REJECTED' && (
                     <>
                       <h4 className="font-medium text-foreground">Profile Verification Rejected</h4>

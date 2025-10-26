@@ -5,9 +5,13 @@ import com.healthcare.medVault.entity.*;
 import com.healthcare.medVault.helper.EmergencyStatus;
 import com.healthcare.medVault.repository.*;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.RestTemplate;
 
+import java.util.Map;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -26,6 +30,8 @@ public class EmergencyService {
     private final RejectionRepository rejectionRepository;
 
     private static final DateTimeFormatter formatter = DateTimeFormatter.ISO_DATE_TIME;
+
+    private static final Logger log = LoggerFactory.getLogger(EmergencyService.class);
 
     public boolean getDoctorAvailability(String doctorId) {
         Optional<DoctorAvailability> availability = doctorAvailabilityRepository.findByDoctorId(Long.parseLong(doctorId));
@@ -55,6 +61,68 @@ public class EmergencyService {
         List<EmergencyRequest> requests = emergencyRequestRepository.findByPatientIdOrderByCreatedAtDesc(Long.parseLong(patientId));
         return requests.stream().map(this::convertToDTO).collect(Collectors.toList());
     }
+
+    @Transactional
+    public EmergencyRequestDTO createAndAssignEmergencyRequest(CreateEmergencyRequestDTO requestDTO) {
+        log.info("Creating emergency request for patientId: {}, symptoms: {}",
+                requestDTO.getPatientId(), requestDTO.getSymptoms());
+
+        // 1. Predict specialization using FastAPI service
+        String predictedSpecialization = predictSpecialization(requestDTO.getSymptoms());
+        log.info("Predicted specialization: {}", predictedSpecialization);
+
+        // 2. Find available doctors for the predicted specialization
+        List<DoctorAvailabilityDTO> availableDoctors = getAvailableDoctorsBySpecialization(predictedSpecialization);
+        log.info("Found {} available doctors for specialization: {}", availableDoctors.size(), predictedSpecialization);
+
+        // 3. Fallback to General doctor if none found
+        if (availableDoctors.isEmpty()) {
+            log.warn("No doctors found for {}. Falling back to General doctors.", predictedSpecialization);
+            availableDoctors = getAvailableDoctorsBySpecialization("General");
+            log.info("Found {} available General doctors", availableDoctors.size());
+        }
+
+        // 4. Create emergency request
+        EmergencyRequestDTO emergencyRequest = createEmergencyRequest(requestDTO);
+        log.info("Emergency request created with ID: {}", emergencyRequest.getId());
+
+        // 5. Assign first available doctor if exists
+        if (!availableDoctors.isEmpty()) {
+            DoctorAvailabilityDTO assignedDoctor = availableDoctors.get(0);
+            log.info("Assigning doctor {} (ID: {}) to emergency request {}",
+                    assignedDoctor.getDoctorName(), assignedDoctor.getDoctorId(), emergencyRequest.getId());
+            acceptEmergencyRequest(assignedDoctor.getDoctorId().toString(), emergencyRequest.getId());
+        } else {
+            log.warn("No available doctors found to assign for emergency request {}", emergencyRequest.getId());
+        }
+
+        return emergencyRequest;
+    }
+
+    // Helper: filter available doctors by specialization
+    public List<DoctorAvailabilityDTO> getAvailableDoctorsBySpecialization(String specialization) {
+        return getAvailableDoctors().stream()
+                .filter(d -> d.getSpecialization().equalsIgnoreCase(specialization) && d.getIsAvailable())
+                .toList();
+    }
+
+    // Helper: predict specialization using your FastAPI service
+    private String predictSpecialization(String symptomsText) {
+        try {
+            RestTemplate restTemplate = new RestTemplate();
+            Map<String, String> payload = Map.of("text", symptomsText);
+            Map<String, String> response = restTemplate.postForObject(
+                    "http://localhost:8000/predict", payload, Map.class
+            );
+            String prediction = response.get("prediction");
+            log.info("Specialization prediction response from FastAPI: {}", prediction);
+            return prediction;
+        } catch (Exception e) {
+            log.error("Failed to predict specialization. Defaulting to 'General'. Error: {}", e.getMessage());
+            return "General"; // fallback if API fails
+        }
+    }
+
 
     @Transactional
     public void cancelEmergencyRequest(String requestId) {

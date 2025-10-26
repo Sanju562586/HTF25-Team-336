@@ -366,37 +366,37 @@ export default function PatientProfileForm({ initialData, onSuccess, locationFro
                       </FormItem>
                     )}
                   />
-                  {/* Replace your latitude/longitude FormFields block */}
-                  {!hideLocationFields ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <FormField
-                        control={form.control}
-                        name="latitude"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Latitude</FormLabel>
-                            <FormControl>
-                              <Input type="number" step="any" value={field.value ?? ''} disabled readOnly />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="longitude"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Longitude</FormLabel>
-                            <FormControl>
-                              <Input type="number" step="any" value={field.value ?? ''} disabled readOnly />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-                  ) : null}
+                {/* Replace your latitude/longitude FormFields block */}
+                {!hideLocationFields ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="latitude"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Latitude</FormLabel>
+                          <FormControl>
+                            <Input type="number" step="any" value={field.value ?? ''} disabled readOnly />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="longitude"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Longitude</FormLabel>
+                          <FormControl>
+                            <Input type="number" step="any" value={field.value ?? ''} disabled readOnly />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                ) : null}
 
                   <div className="space-y-2">
                     <label className="text-sm font-medium">Government ID Upload</label>

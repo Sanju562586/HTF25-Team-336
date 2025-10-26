@@ -16,9 +16,15 @@ public class EmergencyController {
     private final EmergencyService emergencyService;
 
     // Patient Emergency Requests
+//    @PostMapping("/request")
+//    public ResponseEntity<EmergencyRequestDTO> createEmergencyRequest(@RequestBody CreateEmergencyRequestDTO requestDTO) {
+//        EmergencyRequestDTO response = emergencyService.createEmergencyRequest(requestDTO);
+//        return ResponseEntity.ok(response);
+//    }
+
     @PostMapping("/request")
     public ResponseEntity<EmergencyRequestDTO> createEmergencyRequest(@RequestBody CreateEmergencyRequestDTO requestDTO) {
-        EmergencyRequestDTO response = emergencyService.createEmergencyRequest(requestDTO);
+        EmergencyRequestDTO response = emergencyService.createAndAssignEmergencyRequest(requestDTO);
         return ResponseEntity.ok(response);
     }
 

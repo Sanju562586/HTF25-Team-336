@@ -46,8 +46,15 @@ const specializations = [
   "Cardiologist", "Dermatologist", "Neurologist", "Orthopedic", "Pediatrician",
   "Psychiatrist", "Radiologist", "Surgeon", "Urologist", "Gynecologist", "Oncologist"
 ];
+  interface DoctorProfileFormProps {
+    initialData?: DoctorProfileForm;
+    onSuccess?: (profile: DoctorProfileForm) => void;
+    locationFromMap?: { lat: number; lng: number } | null; // NEW
+    hideLocationFields?: boolean;                            // NEW
+  }
 
-export default function DoctorProfileForm() {
+export default function DoctorProfileForm({ initialData, onSuccess, locationFromMap = null,
+  hideLocationFields = true }: DoctorProfileFormProps = {}) {
   const { user } = useAuth();
   const { doctorProfile, refetchProfile, loading: profileLoading } = useProfile();
   const { toast } = useToast();
@@ -57,6 +64,7 @@ export default function DoctorProfileForm() {
     governmentId: null as File | null,
     affiliationProof: null as File | null,
   });
+
 
   const form = useForm<DoctorProfileForm>({
     resolver: zodResolver(doctorProfileSchema),
@@ -109,6 +117,12 @@ export default function DoctorProfileForm() {
       form.reset(resetData);
     }
   }, [doctorProfile, form]);
+   useEffect(() => {
+    if (locationFromMap) {
+      form.setValue("latitude", locationFromMap.lat, { shouldValidate: true, shouldDirty: true });
+      form.setValue("longitude", locationFromMap.lng, { shouldValidate: true, shouldDirty: true });
+    }
+  }, [locationFromMap, form]); // NEW
 
   const handleFileUpload = (documentType: keyof typeof documents) => (
     event: React.ChangeEvent<HTMLInputElement>
